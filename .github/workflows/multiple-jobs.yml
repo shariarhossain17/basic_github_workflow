@@ -36,9 +36,11 @@ jobs:
 
       # Push Image
       - name: Push to DockerHub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          docker tag mynginx:test ${{ secrets.DOCKER_USERNAME }}/mynginx:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/mynginx:latest
+          docker tag mynginx:test $DOCKER_USER/mynginx:latest
+          docker push $DOCKER_USER/mynginx:latest
 
 # name: Multiple Jobs Lab
 # on:
