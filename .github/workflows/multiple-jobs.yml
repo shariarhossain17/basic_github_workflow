@@ -1,52 +1,94 @@
-name: Multiple Jobs Lab
+name: Docker Nginx Lab
+
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
-  # First job: Build
-  build:
-    name: Build Application
+  docker:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
+      # Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build step
-        run: |
-          echo "🏗️ Building the application..."
-          echo "Build completed successfully!"
+      # Login to DockerHub
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-  # Second job: Test
-  test:
-    name: Run Tests
-    needs: build # Depends on build job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run tests
-        run: |
-          echo "🧪 Running tests..."
-          echo "All tests passed!"
+      # Build Image
+      - name: Build Docker image
+        run: docker build -t mynginx:test .
 
-  # Third job: Deploy
-  deploy:
-    name: Deploy Application
-    needs: [build, test] # Depends on both build and test jobs
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy
+      # Test Image
+      - name: Test Docker image
         run: |
-          echo "🚀 Deploying application..."
-          echo "Deployment successful!"
+          docker run -d -p 8080:80 --name test-nginx mynginx:test
+          sleep 5
+          curl http://localhost:8080 | grep "Hello from GitHub Actions"
+          docker stop test-nginx
 
-  # Fourth job: Notify
-  notify:
-    name: Send Notification
-    needs: deploy # Depends on deploy job
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send notification
+      # Push Image
+      - name: Push to DockerHub
         run: |
-          echo "📧 Sending deployment notification..."
-          echo "Notification sent!"
+          docker tag mynginx:test ${{ secrets.DOCKER_USERNAME }}/mynginx:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/mynginx:latest
+
+# name: Multiple Jobs Lab
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   # First job: Build
+#   build:
+#     name: Build Application
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Build step
+#         run: |
+#           echo "🏗️ Building the application..."
+#           echo "Build completed successfully!"
+
+#   # Second job: Test
+#   test:
+#     name: Run Tests
+#     needs: build # Depends on build job
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Run tests
+#         run: |
+#           echo "🧪 Running tests..."
+#           echo "All tests passed!"
+
+#   # Third job: Deploy
+#   deploy:
+#     name: Deploy Application
+#     needs: [build, test] # Depends on both build and test jobs
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Deploy
+#         run: |
+#           echo "🚀 Deploying application..."
+#           echo "Deployment successful!"
+
+#   # Fourth job: Notify
+#   notify:
+#     name: Send Notification
+#     needs: deploy # Depends on deploy job
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Send notification
+#         run: |
+#           echo "📧 Sending deployment notification..."
+#           echo "Notification sent!"
